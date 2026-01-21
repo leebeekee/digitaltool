@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>조별 평가 메뉴</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-top">
+                <h1>조별 사이트 평가 선택</h1>
+            </div>
+        </header>
+
+        <!-- 상단 헤더 영역 -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+             <a href="index.html" class="back-btn" style="margin:0;">&larr; 메인으로</a>
+             <div>
+                 <button id="adminLoginBtn" class="btn-small" onclick="window.openAdminModal()">관리자 로그인</button>
+                 <button id="resetAllBtn" class="btn-small hidden" style="background:#e74c3c; color:white;" onclick="window.resetAllData()">⚠️ 평가 데이터 초기화</button>
+             </div>
+        </div>
+
+        <!-- 실시간 랭킹 -->
+        <div class="card ranking-section">
+            <h2>🏆 실시간 랭킹 (전체조 점수)</h2>
+            <div id="rankingList"></div>
+        </div>
+
+        <!-- [관리자 전용] 상세 기록 -->
+        <div id="adminLogSection" class="card hidden" style="border:2px solid #e74c3c; background:#fff5f5;">
+            <h2 style="color:#c0392b;">📋 실시간 상세 평가 내역 (관리자 모드)</h2>
+            <div id="adminLogList" style="font-size:0.9rem; max-height:300px; overflow-y:auto;">
+                데이터 로딩 중...
+            </div>
+        </div>
+
+        <!-- 메뉴 목록 -->
+        <div class="menu-container">
+            <a href="team_eval.html?id=team_1" class="menu-card team-link">
+                <h3>1조</h3><p>김윤희, 박보경, 박하진, 조은숙</p>
+            </a>
+            <a href="team_eval.html?id=team_2" class="menu-card team-link">
+                <h3>2조</h3><p>김성덕, 송서희, 박주연, 김신혜</p>
+            </a>
+            <a href="team_eval.html?id=team_3" class="menu-card team-link">
+                <h3>3조</h3><p>엄아람, 임화정, 오아영, 안진영</p>
+            </a>
+            <a href="team_eval.html?id=team_4" class="menu-card team-link">
+                <h3>4조</h3><p>권정윤, 김미진, 시지혜</p>
+            </a>
+            <a href="team_eval.html?id=team_5" class="menu-card team-link">
+                <h3>5조</h3><p>신록, 임빛나, 정유진, 홍정혜</p>
+            </a>
+            <a href="team_eval.html?id=team_6" class="menu-card team-link">
+                <h3>6조</h3><p>박민주, 박수란, 임민희, 류현정</p>
+            </a>
+            <a href="team_eval.html?id=team_7" class="menu-card team-link">
+                <h3>7조</h3><p>변지선, 신선혜, 강정한</p>
+            </a>
+            <a href="team_eval.html?id=team_8" class="menu-card team-link">
+                <h3>8조</h3><p>최운영,김영은,윤현숙,이윤정</p>
+            </a>
+            <a href="team_eval.html?id=team_9" class="menu-card team-link">
+                <h3>9조</h3><p>조한숙, 김영림, 유승희, 이용희</p>
+            </a>
+            <a href="team_eval.html?id=team_10" class="menu-card team-link">
+                <h3>10조</h3><p>진창완, 정영숙, 김홍진, 하백화</p>
+            </a>
+            <a href="team_eval.html?id=team_11" class="menu-card team-link">
+                <h3>11조</h3><p>김소영, 김주희, 김한솔, 박영애, 신윤해, 윤우희</p>
+            </a>
+        </div>
+    </div>
+
+    <!-- 관리자 로그인 모달 -->
+    <div id="loginModal" class="modal hidden" onclick="if(event.target===this) window.closeAdminModal()">
+        <div class="modal-content">
+            <span class="close-modal" onclick="window.closeAdminModal()">&times;</span>
+            <h2>관리자 로그인</h2>
+            <br>
+            <input type="text" id="adminId" placeholder="아이디" style="margin-bottom:10px; padding:10px; width:100%;">
+            <input type="password" id="adminPw" placeholder="비밀번호" style="margin-bottom:20px; padding:10px; width:100%;">
+            <button id="loginSubmitBtn" class="btn-primary" onclick="window.tryAdminLogin()">로그인</button>
+        </div>
+    </div>
+
+    <script type="module" src="firebase-config.js"></script>
+    <script type="module" src="app.js"></script>
+</body>
+</html>

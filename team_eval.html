@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>평가하기</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-top">
+                <!-- 기본값: 1조 평가 (스크립트 로딩 전에도 보임) -->
+                <h1 id="pageTitle">1조 평가</h1>
+            </div>
+        </header>
+
+        <a href="evaluate.html" class="back-btn">&larr; 목록으로 돌아가기</a>
+        
+        <div class="card">
+            <!-- 기본값: 1조 정보 -->
+            <h2 id="teamName">1조 평가하기</h2>
+            <p id="teamMembers" class="members" style="font-size:1.1rem; margin-bottom: 30px;">김윤희, 박보경, 박하진, 조은숙</p>
+            
+            <form id="evalForm">
+                <div class="rating-row-large">
+                    <span class="label">💡 창의성 (50%)</span>
+                    <div class="radio-circles">
+                        <label><input type="radio" name="c" value="5"><span>5</span></label>
+                        <label><input type="radio" name="c" value="4"><span>4</span></label>
+                        <label><input type="radio" name="c" value="3"><span>3</span></label>
+                        <label><input type="radio" name="c" value="2"><span>2</span></label>
+                        <label><input type="radio" name="c" value="1"><span>1</span></label>
+                    </div>
+                </div>
+
+                <div class="rating-row-large">
+                    <span class="label">🏗️ 완성도 (40%)</span>
+                    <div class="radio-circles">
+                        <label><input type="radio" name="p" value="5"><span>5</span></label>
+                        <label><input type="radio" name="p" value="4"><span>4</span></label>
+                        <label><input type="radio" name="p" value="3"><span>3</span></label>
+                        <label><input type="radio" name="p" value="2"><span>2</span></label>
+                        <label><input type="radio" name="p" value="1"><span>1</span></label>
+                    </div>
+                </div>
+
+                <div class="rating-row-large">
+                    <span class="label">🎨 디자인 (10%)</span>
+                    <div class="radio-circles">
+                        <label><input type="radio" name="d" value="5"><span>5</span></label>
+                        <label><input type="radio" name="d" value="4"><span>4</span></label>
+                        <label><input type="radio" name="d" value="3"><span>3</span></label>
+                        <label><input type="radio" name="d" value="2"><span>2</span></label>
+                        <label><input type="radio" name="d" value="1"><span>1</span></label>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary" style="margin-top: 30px; padding: 20px; font-size:1.2rem;">평가 제출하기</button>
+            </form>
+            
+            <div id="currentScore" class="score-result" style="text-align:center; margin-top:30px; font-size:1.2rem;"></div>
+        </div>
+    </div>
+
+    <!-- [화면 표시용 스크립트] - 2조 이상일 때만 내용을 바꿔치기 함 -->
+    <script>
+        (function() {
+            var teams = {
+                'team_1': { name: '1조', members: '김윤희, 박보경, 박하진, 조은숙' },
+                'team_2': { name: '2조', members: '김성덕, 송서희, 박주연, 김신혜' },
+                'team_3': { name: '3조', members: '엄아람, 임화정, 오아영, 안진영' },
+                'team_4': { name: '4조', members: '권정윤, 김미진, 시지혜' },
+                'team_5': { name: '5조', members: '신록, 임빛나, 정유진, 홍정혜' },
+                'team_6': { name: '6조', members: '박민주, 박수란, 임민희, 류현정' },
+                'team_7': { name: '7조', members: '변지선, 신선혜, 강정한' },
+                'team_8': { name: '8조', members: '최운영,김영은,윤현숙,이윤정' },
+                'team_9': { name: '9조', members: '조한숙, 김영림, 유승희, 이용희' },
+                'team_10': { name: '10조', members: '진창완, 정영숙, 김홍진, 하백화' },
+                'team_11': { name: '11조', members: '김소영, 김주희, 김한솔, 박영애, 신윤해, 윤우희' }
+            };
+
+            var params = new URLSearchParams(window.location.search);
+            var tid = params.get('id');
+            // ID 없으면 무조건 team_1로 고정 (오류 방지)
+            if (!tid || !teams[tid]) {
+                tid = 'team_1';
+            }
+
+            // HTML 내용 변경 (1조일 때는 이미 적혀있어서 변화 없음, 2조일 때 바뀜)
+            var teamInfo = teams[tid];
+            if (tid !== 'team_1' && teamInfo) {
+                document.getElementById('teamName').textContent = teamInfo.name + ' 평가하기';
+                document.getElementById('teamMembers').textContent = teamInfo.members;
+                document.getElementById('pageTitle').textContent = teamInfo.name + ' 평가';
+            }
+        })();
+    </script>
+
+    <!-- [파이어베이스 로직] -->
+    <script type="module">
+        import { db } from './firebase-config.js';
+        import { doc, setDoc, addDoc, collection, increment, serverTimestamp, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // 파라미터 다시 확인 (위와 동일한 로직 적용)
+        const urlParams = new URLSearchParams(window.location.search);
+        let teamId = urlParams.get('id');
+        if (!teamId) teamId = 'team_1'; // 안전장치
+
+        // 실시간 점수
+        onSnapshot(doc(db, 'evaluations', teamId), (docSnap) => {
+            const div = document.getElementById('currentScore');
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                const count = data.count || 0;
+                if (count > 0) {
+                    const total = 20 * ((data.sum_creative/count * 0.5) + (data.sum_complete/count * 0.4) + (data.sum_design/count * 0.1));
+                    div.innerHTML = `🏆 현재 평점: <strong style="color:#4a90e2; font-size:1.5em;">${total.toFixed(1)}점</strong> <span style="font-size:0.8em; color:#888;">(${count}명 참여)</span>`;
+                }
+            }
+        });
+
+        // 제출 핸들러
+        document.getElementById('evalForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const cVal = parseInt(form.querySelector('input[name="c"]:checked')?.value || 0);
+            const pVal = parseInt(form.querySelector('input[name="p"]:checked')?.value || 0);
+            const dVal = parseInt(form.querySelector('input[name="d"]:checked')?.value || 0);
+
+            if (!cVal || !pVal || !dVal) { alert('모든 항목을 선택해주세요.'); return; }
+            if (!confirm('제출하시겠습니까?')) return;
+
+            try {
+                // 합계
+                await setDoc(doc(db, 'evaluations', teamId), {
+                    count: increment(1),
+                    sum_creative: increment(cVal),
+                    sum_complete: increment(pVal),
+                    sum_design: increment(dVal),
+                    last_updated: serverTimestamp()
+                }, { merge: true });
+
+                // 로그
+                const teamNameDisplay = document.getElementById('teamName').textContent.replace(' 평가하기', '');
+                await addDoc(collection(db, 'evaluation_logs'), {
+                    teamId: teamId,
+                    teamName: teamNameDisplay,
+                    creative: cVal,
+                    complete: pVal,
+                    design: dVal,
+                    timestamp: serverTimestamp()
+                });
+
+                alert('제출되었습니다!');
+                window.location.href = 'evaluate.html';
+            } catch (err) {
+                alert('전송 오류: ' + err.message);
+            }
+        });
+    </script>
+</body>
+</html>
