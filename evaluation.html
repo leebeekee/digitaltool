@@ -353,22 +353,35 @@
         ];
 
         let currentRatings = { creativity: 0, completeness: 0, design: 0 };
-        // [중요] 선생님께서 이곳에 아이디와 저장소 이름을 직접 적어주세요.
+        
+        // 초기 설정
         let githubConfig = {
             owner: 'leebeekee',
             repo: 'digitaltool',
-            path: 'eval_data.json',
-            token: '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' // 제공해주신 토큰
+            path: 'eval_data.json', // 이 페이지는 항상 evaluation data를 사용
+            token: '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' 
         };
 
-        // --- GitHub Logic (Simplified Copy) ---
         const DEFAULTS = { message: "Update evaluation data", committer: { name: "Digital Tool Web", email: "web@digitaltool.com" } };
 
         document.addEventListener('DOMContentLoaded', () => {
+            loadConfig(); // 저장된 설정 불러오기
             renderGroups();
             setupAdminLogic();
-            // Settings button removed
+            setupConfigButton(); // 설정 버튼 추가
         });
+
+        // 설정 불러오기 (path는 덮어쓰지 않도록 주의)
+        function loadConfig() {
+            const saved = localStorage.getItem('gh_config_v2');
+            if (saved) {
+                const savedConfig = JSON.parse(saved);
+                githubConfig.owner = savedConfig.owner || githubConfig.owner;
+                githubConfig.repo = savedConfig.repo || githubConfig.repo;
+                githubConfig.token = savedConfig.token || githubConfig.token;
+                // path는 저장된 설정에서 가져오지 않고 고정값 사용
+            }
+        }
 
         function renderGroups() {
             const grid = document.getElementById('groupGrid');
@@ -419,7 +432,7 @@
             if (!githubConfig.token) {
                 alert("연동 설정이 필요합니다. 우측 상단 ⚙️ 버튼을 눌러 설정해주세요.");
                 closeModal();
-                openSettings(); // Using the function from shared logic
+                openSettings();
                 return;
             }
 
@@ -435,6 +448,7 @@
             };
 
             const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerText;
             btn.innerText = "제출 중...";
             btn.disabled = true;
 
@@ -447,9 +461,15 @@
                 alert("평가가 제출되었습니다!");
                 closeModal();
             } catch (err) {
-                alert("오류 발생: " + err.message);
+                console.error(err);
+                if (err.message.includes('401')) {
+                    alert("인증 오류(401): 토큰이 만료되었거나 권한이 없습니다. 설정을 확인해주세요.");
+                    openSettings();
+                } else {
+                    alert("오류 발생: " + err.message);
+                }
             } finally {
-                btn.innerText = "평가 제출하기";
+                btn.innerText = originalText;
                 btn.disabled = false;
             }
         });
@@ -485,6 +505,11 @@
         }
 
         window.resetEvaluationFooter = async function () {
+            if (!githubConfig.token) {
+                 alert("GitHub 설정이 필요합니다.");
+                 openSettings();
+                 return;
+            }
             // Re-use logic or call the same function prompt
             if (!confirm("⚠️ 경고: 모든 평가 데이터가 영구적으로 삭제됩니다!\n정말 초기화 하시겠습니까?")) return;
 
@@ -506,6 +531,11 @@
         }
 
         window.resetEvaluationData = async function () {
+             if (!githubConfig.token) {
+                 alert("GitHub 설정이 필요합니다.");
+                 openSettings();
+                 return;
+            }
             if (!confirm("⚠️ 경고: 모든 평가 데이터가 영구적으로 삭제됩니다!\n정말 초기화 하시겠습니까?")) return;
 
             // Double check
@@ -528,6 +558,12 @@
         }
 
         async function loadRankings() {
+            if (!githubConfig.token) {
+                // Fail silently or show setup message
+                document.getElementById('rankingBody').innerHTML = '<tr><td colspan="5" style="text-align:center;">GitHub 연동이 필요합니다.<br><button onclick="openSettings()" style="margin-top:10px; color:black;">설정하기</button></td></tr>';
+                return;
+            }
+
             const tbody = document.getElementById('rankingBody');
             tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:2rem;">점수 계산 중...</td></tr>';
 
@@ -570,32 +606,39 @@
                 }).join('');
 
             } catch (err) {
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:red;">로드 실패: ${err.message}</td></tr>`;
+                console.error(err);
+                if (err.message.includes('401')) {
+                     tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#fca5a5;">인증 오류: 토큰이 만료되었습니다. <button onclick="openSettings()">설정 변경</button></td></tr>`;
+                } else {
+                     tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:red;">로드 실패: ${err.message}</td></tr>`;
+                }
             }
         }
 
-        // --- Shared GitHub API Logic from Step 38 ---
-        // (Simplified duplication for standalone file func)
+        // --- Shared GitHub API Logic ---
 
         function setupConfigButton() {
             const nav = document.querySelector('.back-nav');
-            const btn = document.createElement('button');
-            btn.innerHTML = '⚙️ 설정';
-            btn.className = 'login-mini-btn';
-            btn.style.position = 'relative';
-            btn.style.top = '0';
-            btn.style.right = '0';
-            btn.style.marginLeft = 'auto';
-            btn.onclick = openSettings;
-            nav.appendChild(btn);
-            nav.style.display = 'flex';
+            if(nav) {
+                const btn = document.createElement('button');
+                btn.innerHTML = '⚙️ GitHub 설정';
+                btn.className = 'login-mini-btn';
+                btn.style.marginLeft = 'auto'; // Right align similar to flex auto margins
+                btn.onclick = openSettings;
+                nav.appendChild(btn);
+            }
         }
 
         async function fetchFileContent() {
             const url = `https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${githubConfig.path}`;
             const response = await fetch(url, { headers: { 'Authorization': `token ${githubConfig.token}`, 'Accept': 'application/vnd.github.v3+json' } });
-            if (!response.ok && response.status === 404) return { content: [], sha: null };
-            if (!response.ok) throw new Error("GitHub 접속 실패");
+            
+            if (!response.ok) {
+                if(response.status === 401) throw new Error("GitHub 접속 실패 (401 Unauthorized)");
+                if (response.status === 404) return { content: [], sha: null };
+                throw new Error(`GitHub 접속 실패 (${response.status})`);
+            }
+            
             const data = await response.json();
             const decodedContent = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ""))));
             return { content: JSON.parse(decodedContent), sha: data.sha };
@@ -607,41 +650,79 @@
             const encodedContent = btoa(unescape(encodeURIComponent(contentString)));
             const body = { message: DEFAULTS.message, committer: DEFAULTS.committer, content: encodedContent };
             if (sha) body.sha = sha;
-            const response = await fetch(url, { method: 'PUT', headers: { 'Authorization': `token ${githubConfig.token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-            if (!response.ok) throw new Error("저장 실패");
+            
+            const response = await fetch(url, { 
+                method: 'PUT', 
+                headers: { 
+                    'Authorization': `token ${githubConfig.token}`, 
+                    'Accept': 'application/vnd.github.v3+json', 
+                    'Content-Type': 'application/json' 
+                }, 
+                body: JSON.stringify(body) 
+            });
+            
+            if (!response.ok) {
+                 if(response.status === 401) throw new Error("401 Unauthorized");
+                 throw new Error("저장 실패");
+            }
         }
 
         window.openSettings = function () {
-            // Reuse the modal logic? Or a simple prompt for now to save space/time, or better detailed modal.
-            // Let's copy the detailed modal logic briefly.
             const overlay = document.createElement('div');
             overlay.style.cssText = `position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:3000;display:flex;justify-content:center;align-items:center;`;
+            
+            // Reuse the style from group_site somewhat but inline for standalone
             overlay.innerHTML = `
-                <div class="modal-content">
-                    <h3>GitHub 연동 설정</h3>
-                    <input id="gh_owner" class="login-input" placeholder="이름 (Owner)" value="${githubConfig.owner || ''}" style="margin-top:1rem;">
-                    <input id="gh_repo" class="login-input" placeholder="저장소 (Repo)" value="${githubConfig.repo || ''}">
-                    <input type="password" id="gh_token" class="login-input" placeholder="토큰 (Token)" value="${githubConfig.token || ''}">
-                    <button id="saveGH" class="submit-btn" style="margin-top:1rem;">저장</button>
-                    <button id="closeGH" class="submit-btn" style="background:#475569; margin-top:0.5rem;">닫기</button>
+                <div class="row" style="background:var(--glass-bg); border:1px solid var(--glass-border); padding:2rem; border-radius:20px; width:90%; max-width:400px; backdrop-filter:blur(10px);">
+                    <h3 style="color:white; margin-bottom:1rem;">GitHub 연동 설정</h3>
+                    <p style="color:#cbd5e1; font-size:0.8rem; margin-bottom:1rem;">평가 데이터를 저장할 저장소 정보를 입력하세요.</p>
+                    
+                    <label style="color:#cbd5e1; font-size:0.9rem;">아이디 (Owner)</label>
+                    <input id="gh_owner" style="width:100%; padding:0.5rem; margin-bottom:0.5rem; background:rgba(0,0,0,0.5); border:1px solid #475569; color:white; border-radius:5px;" value="${githubConfig.owner || ''}">
+                    
+                    <label style="color:#cbd5e1; font-size:0.9rem;">저장소 이름 (Repo)</label>
+                    <input id="gh_repo" style="width:100%; padding:0.5rem; margin-bottom:0.5rem; background:rgba(0,0,0,0.5); border:1px solid #475569; color:white; border-radius:5px;" value="${githubConfig.repo || ''}">
+                    
+                    <label style="color:#cbd5e1; font-size:0.9rem;">토큰 (Token)</label>
+                    <input type="password" id="gh_token" style="width:100%; padding:0.5rem; margin-bottom:1rem; background:rgba(0,0,0,0.5); border:1px solid #475569; color:white; border-radius:5px;" value="${githubConfig.token || ''}">
+                    
+                    <div style="display:flex; gap:0.5rem;">
+                        <button id="saveGH" style="flex:1; padding:0.5rem; background:linear-gradient(135deg, var(--primary-color), var(--secondary-color)); color:white; border:none; border-radius:5px; cursor:pointer;">저장</button>
+                        <button id="closeGH" style="flex:1; padding:0.5rem; background:#475569; color:white; border:none; border-radius:5px; cursor:pointer;">닫기</button>
+                    </div>
                 </div>
              `;
             document.body.appendChild(overlay);
+            
             document.getElementById('saveGH').onclick = () => {
-                githubConfig = {
+                const newConfig = {
                     owner: document.getElementById('gh_owner').value.trim(),
                     repo: document.getElementById('gh_repo').value.trim(),
                     token: document.getElementById('gh_token').value.trim(),
-                    path: 'eval_data.json'
+                    // path는 저장하지 않거나(무시됨), 저장해도 loadConfig에서 무시함.
+                    // 일관성을 위해 path도 넣어둘 수는 있으나 evaluation.html은 eval_data.json만 써야함.
                 };
-                localStorage.setItem('gh_config', JSON.stringify(githubConfig));
+                
+                // Save to localStorage just like group_site.html does so they share credentials
+                localStorage.setItem('gh_config_v2', JSON.stringify({
+                    ...newConfig,
+                    path: 'data.json' // Save 'data.json' as default path for group_site compatibility? 
+                                      // Or better yet, don't rely on path in localStorage for files that have fixed paths.
+                }));
+                
+                // Update current runtime config
+                githubConfig.owner = newConfig.owner;
+                githubConfig.repo = newConfig.repo;
+                githubConfig.token = newConfig.token;
+                
                 document.body.removeChild(overlay);
-                alert("설정 저장됨");
-                // Refresh if needed
+                alert("설정이 저장되었습니다.");
                 location.reload();
             };
+            
             document.getElementById('closeGH').onclick = () => document.body.removeChild(overlay);
         }
+    </script>
 
     </script>
 </body>
