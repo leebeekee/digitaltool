@@ -8,5 +8,15 @@
     },
     "finalScore": 2.6,
     "timestamp": "2026-01-21T05:02:17.271Z"
+  },
+  {
+    "groupId": 1,
+    "scores": {
+      "creativity": 2,
+      "completeness": 2,
+      "design": 2
+    },
+    "finalScore": 2,
+    "timestamp": "2026-01-21T05:05:24.953Z"
   }
 ]
